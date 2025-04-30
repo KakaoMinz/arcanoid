@@ -8,7 +8,7 @@
 typedef struct {
     float x, y, width, height, rad, dx, dy, speed;
     HBITMAP hBitmap;//хэндл к спрайту шарика 
-} sprite;
+} sprite;   
 
 sprite racket;//ракетка игрока
 sprite enemy;//ракетка противника
