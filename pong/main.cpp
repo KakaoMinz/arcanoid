@@ -9,7 +9,7 @@ typedef struct {
     float x, y, width, height, rad, dx, dy, speed;
     HBITMAP hBitmap;//хэндл к спрайту шарика 
     bool status;
-} sprite;   
+} sprite;
 
 const int countx = 20;
 const int county = 5;
@@ -50,16 +50,16 @@ void InitGame()
     racket.x = window.width / 2.;//ракетка посередине окна
     racket.y = window.height - racket.height;//чуть выше низа экрана - на высоту ракетки
 
- 
-    for (int i = 0;i < countx;i++)
+
+    for (int i = 0; i < countx; i++)
     {
-        for (int j = 0;j < county;j++)
+        for (int j = 0; j < county; j++)
         {
-            wall[i][j].width = window.width/countx;
-            wall[i][j].height = window.height/county/3;
+            wall[i][j].width = window.width / countx;
+            wall[i][j].height = window.height / county / 3;
 
             wall[i][j].x = i * wall[i][j].width;
-            wall[i][j].y = j * wall[i][j].height+window.height/3;
+            wall[i][j].y = j * wall[i][j].height + window.height / 3;
             wall[i][j].hBitmap = racket.hBitmap;
             wall[i][j].status = true;
         }
@@ -76,7 +76,7 @@ void InitGame()
     game.score = 0;
     game.balls = 9;
 
-   
+
 }
 
 void ProcessSound(const char* name)//проигрывание аудиофайла в формате .wav, файл должен лежать в той же папке где и программа
@@ -236,13 +236,13 @@ void ProcessRoom()
     CheckRoof();
     CheckFloor();
 
-    for (int i = 0;i < countx;i++)
+    for (int i = 0; i < countx; i++)
     {
-        for (int j = 0;j < county;j++)
+        for (int j = 0; j < county; j++)
         {
-            if ((ball.y < wall[i][j].y + wall[i][j].height) && 
-                (ball.x < wall[i][j].x + wall[i][j].width) && 
-                (ball.y > wall[i][j].y) && 
+            if ((ball.y < wall[i][j].y + wall[i][j].height) &&
+                (ball.y > wall[i][j].y + wall[i][j].height - ball.speed) &&
+                (ball.x < wall[i][j].x + wall[i][j].width) &&
                 (ball.x > wall[i][j].x))
             {
                 if (wall[i][j].status)
@@ -251,6 +251,42 @@ void ProcessRoom()
                     wall[i][j].status = false;
                 }
             }
+            else
+                if ((ball.y > wall[i][j].y) &&
+                    (ball.y < wall[i][j].y + ball.speed) &&
+                    (ball.x < wall[i][j].x + wall[i][j].width) &&
+                    (ball.x > wall[i][j].x))
+                {
+                    if (wall[i][j].status)
+                    {
+                        ball.dy *= -1;
+                        wall[i][j].status = false;
+                    }
+                }
+                else
+                    if ((ball.y < wall[i][j].y + wall[i][j].height) &&
+                        (ball.y > wall[i][j].y) &&
+                        (ball.x < wall[i][j].x + ball.speed) &&
+                        (ball.x > wall[i][j].x))
+                    {
+                        if (wall[i][j].status)
+                        {
+                            ball.dx *= -1;
+                            wall[i][j].status = false;
+                        }
+                    }
+                    else
+                        if ((ball.y < wall[i][j].y + wall[i][j].height) &&
+                            (ball.y > wall[i][j].y) &&
+                            (ball.x < wall[i][j].x + wall[i][j].width) &&
+                            (ball.x > wall[i][j].x + wall[i][j].width - ball.speed))
+                        {
+                            if (wall[i][j].status)
+                            {
+                                ball.dx *= -1;
+                                wall[i][j].status = false;
+                            }
+                        }
         }
     }
 }
@@ -291,13 +327,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_ LPWSTR    lpCmdLine,
     _In_ int       nCmdShow)
 {
-    
+
     InitWindow();//здесь инициализируем все что нужно для рисования в окне
     InitGame();//здесь инициализируем переменные игры
 
     //mciSendString(TEXT("play ..\\Debug\\music.mp3 repeat"), NULL, 0, NULL);
     ShowCursor(NULL);
-    
+
     while (!GetAsyncKeyState(VK_ESCAPE))
     {
         ShowRacketAndBall();//рисуем фон, ракетку и шарик
