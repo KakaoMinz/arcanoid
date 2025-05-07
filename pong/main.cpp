@@ -268,6 +268,10 @@ void ProcessRoom()
         x = bx + a * ll;
         y = by + b * ll;
 
+        float S =
+        float F =
+        
+
         SetPixel(window.context, x, y, RGB(255, 255, 255));
 
         for (int i = 0; i < countx; i++)
