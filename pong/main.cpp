@@ -3,6 +3,7 @@
 //linker::input::additional dependensies Msimg32.lib; Winmm.lib
 
 #include "windows.h"
+#include <math.h>
 
 // секция данных игры  
 typedef struct {
@@ -62,13 +63,15 @@ void InitGame()
             wall[i][j].y = j * wall[i][j].height + window.height / 3;
             wall[i][j].hBitmap = racket.hBitmap;
             wall[i][j].status = true;
+
+            if (i<5||i>15) wall[i][j].status = false;
         }
     }
 
 
     ball.dy = (rand() % 65 + 35) / 100.;//формируем вектор полета шарика
     ball.dx = -(1 - ball.dy);//формируем вектор полета шарика
-    ball.speed = 11;
+    ball.speed = 111;
     ball.rad = 20;
     ball.x = racket.x;//x координата шарика - на середие ракетки
     ball.y = racket.y - ball.rad;//шарик лежит сверху ракетки
@@ -231,75 +234,91 @@ void CheckFloor()
 
 void ProcessRoom()
 {
+    if (!game.action) return;
+
+    POINT p;
+    GetCursorPos(&p);
+    ScreenToClient(window.hWnd, &p);
+    ball.x = p.x;
+    ball.y = p.y;
+
+
     //обрабатываем стены, потолок и пол. принцип - угол падения равен углу отражения, а значит, для отскока мы можем просто инвертировать часть вектора движения шарика
     CheckWalls();
     CheckRoof();
     CheckFloor();
+    float a = ball.dx * ball.speed;
+    float b = ball.dy * ball.speed;
+    float lenght = sqrt(a * a + b * b);
 
-    for (int i = 0; i < countx; i++)
+    float bx = ball.x;
+    float by = ball.y;
+    float bdx = ball.dx;
+    float bdy = ball.dy;
+
+
+    float x;
+    float y;
+    for (int k = 0; k < lenght ; k++)
     {
-        for (int j = 0; j < county; j++)
+        a = bdx * ball.speed;
+        b = bdy * ball.speed;
+
+        float ll = k / lenght;
+        x = bx + a * ll;
+        y = by + b * ll;
+
+        SetPixel(window.context, x, y, RGB(255, 255, 255));
+
+        for (int i = 0; i < countx; i++)
         {
-            if ((ball.y < wall[i][j].y + wall[i][j].height) &&
-                (ball.y > wall[i][j].y + wall[i][j].height - ball.speed) &&
-                (ball.x < wall[i][j].x + wall[i][j].width) &&
-                (ball.x > wall[i][j].x))
+            for (int j = 0; j < county; j++)
             {
-                if (wall[i][j].status)
-                {
-                    ball.dy *= -1;
-                    wall[i][j].status = false;
-                }
-            }
-            else
-                if ((ball.y > wall[i][j].y) &&
-                    (ball.y < wall[i][j].y + ball.speed) &&
-                    (ball.x < wall[i][j].x + wall[i][j].width) &&
-                    (ball.x > wall[i][j].x))
+                if ((y < wall[i][j].y + wall[i][j].height) &&
+                    (y > wall[i][j].y) &&
+                    (x < wall[i][j].x + wall[i][j].width) &&
+                    (x > wall[i][j].x))
                 {
                     if (wall[i][j].status)
                     {
-                        ball.dy *= -1;
-                        wall[i][j].status = false;
+                        int Left = x - wall[i][j].x;
+                        int Right = wall[i][j].x + wall[i][j].width - x;
+                        int Top = y - wall[i][j].y;
+                        int Bottom = wall[i][j].y + wall[i][j].height - y;
+
+                        if (min(Left, Right) < min(Top, Bottom))
+                        {
+                            bdx *= -1;
+                            float deltaX = (x - ball.x) * 2;
+                            bx += deltaX;
+                            x = bx + a * ll;
+                            i = countx;
+                            j = county;
+
+                        }
+                        else
+                        {
+                            bdy *= -1;
+                            float deltaY = (y - ball.y) * 2;
+                            by += deltaY;
+                            y = by + b * ll;
+                            i = countx;
+                            j = county;
+                        }
+
+                       // wall[i][j].status = false;
                     }
                 }
-                else
-                    if ((ball.y < wall[i][j].y + wall[i][j].height) &&
-                        (ball.y > wall[i][j].y) &&
-                        (ball.x < wall[i][j].x + ball.speed) &&
-                        (ball.x > wall[i][j].x))
-                    {
-                        if (wall[i][j].status)
-                        {
-                            ball.dx *= -1;
-                            wall[i][j].status = false;
-                        }
-                    }
-                    else
-                        if ((ball.y < wall[i][j].y + wall[i][j].height) &&
-                            (ball.y > wall[i][j].y) &&
-                            (ball.x < wall[i][j].x + wall[i][j].width) &&
-                            (ball.x > wall[i][j].x + wall[i][j].width - ball.speed))
-                        {
-                            if (wall[i][j].status)
-                            {
-                                ball.dx *= -1;
-                                wall[i][j].status = false;
-                            }
-                        }
+            }
         }
     }
+  //  ball.x = x;
+  //  ball.y = y;
 }
 
 void ProcessBall()
 {
-    if (game.action)
-    {
-        //если игра в активном режиме - перемещаем шарик
-        ball.x += ball.dx * ball.speed;
-        ball.y += ball.dy * ball.speed;
-    }
-    else
+    if (!game.action)
     {
         //иначе - шарик "приклеен" к ракетке
         ball.x = racket.x;
@@ -338,13 +357,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     {
         ShowRacketAndBall();//рисуем фон, ракетку и шарик
         ShowScore();//рисуем очик и жизни
-        BitBlt(window.device_context, 0, 0, window.width, window.height, window.context, 0, 0, SRCCOPY);//копируем буфер в окно
-        Sleep(16);//ждем 16 милисекунд (1/количество кадров в секунду)
+       
 
         ProcessInput();//опрос клавиатуры
         LimitRacket();//проверяем, чтобы ракетка не убежала за экран
-        ProcessBall();//перемещаем шарик
+        
         ProcessRoom();//обрабатываем отскоки от стен и каретки, попадание шарика в картетку
+        ProcessBall();//перемещаем шарик
+        BitBlt(window.device_context, 0, 0, window.width, window.height, window.context, 0, 0, SRCCOPY);//копируем буфер в окно
+        Sleep(16);//ждем 16 милисекунд (1/количество кадров в секунду)
     }
 
 }
